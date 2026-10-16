@@ -1,6 +1,6 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-06-18/server.schema.json",
-  "name": "io.github.zhuyt/listguard",
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/draft/server.schema.json",
+  "name": "io.github.yaboom/listguard",
   "title": "ListGuard — Listing Compliance Audit",
   "description": "Deterministic compliance audit for cross-border e-commerce listings (Amazon, Temu, TikTok Shop). Detects banned words, promo words, absolute claims, unsupported certification claims, trademark risks and missing AI content disclosure (2026-08 Amazon rule). Versioned YAML rule packs, three-level obfuscation-resistant matching, no LLM involved in judging — every finding carries a rule id and rationale.",
   "repository": {
