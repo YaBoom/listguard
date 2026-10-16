@@ -48,8 +48,10 @@ jobs:
           for f in _site/index.html _site/checker.html; do
             sed -i "s|__REPO_URL__|${REPO_URL}|g" "$f"
           done
-          # 占位符必须已被替换干净，否则页面链接会指向无效地址
-          if grep -rq '__REPO_URL__' _site/; then
+          # 占位符必须已被替换干净，否则页面链接会指向无效地址。
+          # 只查 HTML：app.js 里含有用于降级判断的同名字符串常量，
+          # 全目录 grep 会把它误判为「未替换」而让部署自我失败。
+          if grep -q '__REPO_URL__' _site/index.html _site/checker.html; then
             echo "repo url placeholder not replaced"; exit 1
           fi
           echo "injected repo url: ${REPO_URL}"
