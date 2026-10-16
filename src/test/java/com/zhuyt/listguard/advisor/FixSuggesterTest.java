@@ -39,6 +39,38 @@ class FixSuggesterTest {
     }
 
     @Test
+    void suggest_removesCjkHitInsideLongerChineseRun() {
+        // 中文无词边界：「全场全网最低价」中嵌入「全网最低价」，也必须能定位移除
+        var finding = new Finding("promo-lowest-price", "promo_word", Severity.RED,
+                "title", "全网最低价", "促销词", "删除促销表述");
+        var s = suggester.suggest("全场全网最低价 手慢无", finding);
+        assertTrue(s.applicable());
+        assertTrue(s.suggestedText().contains("全场"));
+        assertFalse(s.suggestedText().contains("全网最低价"));
+    }
+
+    @Test
+    void suggest_preservesFullWidthPunctuationViaSpanRebuild() {
+        // 全角标点只用于定位，不得污染建议文本：建议必须保留原文的「，」
+        var finding = new Finding("promo-lowest-price", "promo_word", Severity.RED,
+                "title", "全网最低价", "促销词", "删除促销表述");
+        var s = suggester.suggest("全网最低价，手慢无", finding);
+        assertTrue(s.applicable());
+        assertTrue(s.suggestedText().contains("，"));
+        assertFalse(s.suggestedText().contains(","));
+        assertTrue(s.suggestedText().contains("手慢无"));
+    }
+
+    @Test
+    void suggest_notApplicableWhenWholeTextIsTheHit() {
+        // 整句即命中：移除后无剩余内容，应返回不可应用而非空建议
+        var finding = new Finding("promo-best-seller", "promo_word", Severity.RED,
+                "title", "best seller", "促销词", "删除");
+        var s = suggester.suggest("Best Seller", finding);
+        assertFalse(s.applicable());
+    }
+
+    @Test
     void suggest_originalTextUntouchedWhenNoHit() {
         var finding = new Finding("promo-best-seller", "promo_word", Severity.RED,
                 "title", "best seller", "促销词", "删除");
