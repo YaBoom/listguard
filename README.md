@@ -1,4 +1,4 @@
-# listguard-zhuyt
+# listguard
 
 跨境电商 Listing 合规审计引擎。给 listing 文案做 lint，在商品被平台扫描、下架、封店之前把问题拦下来。
 

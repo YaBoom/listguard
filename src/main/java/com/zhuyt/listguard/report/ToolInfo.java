@@ -5,7 +5,7 @@ public final class ToolInfo {
 
     public static final String NAME = "listguard";
     public static final String VERSION = "0.1.0";
-    public static final String INFO_URI = "https://github.com/YaBoom/listguard-zhuyt";
+    public static final String INFO_URI = "https://github.com/YaBoom/listguard";
 
     private ToolInfo() {
     }
