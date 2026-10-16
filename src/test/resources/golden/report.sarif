@@ -1,0 +1,36 @@
+{
+  "$schema" : "https://json.schemastore.org/sarif-2.1.0.json",
+  "version" : "2.1.0",
+  "runs" : [ {
+    "tool" : {
+      "driver" : {
+        "name" : "listguard",
+        "version" : "0.1.0",
+        "informationUri" : "https://github.com/YaBoom/listguard-zhuyt"
+      }
+    },
+    "results" : [ {
+      "ruleId" : "promo-free-shipping",
+      "level" : "error",
+      "message" : {
+        "text" : "title: 命中 [free shipping] 促销词违反平台政策"
+      },
+      "properties" : {
+        "category" : "promo_word",
+        "matchedText" : "free shipping",
+        "suggestion" : "删除促销表述"
+      }
+    }, {
+      "ruleId" : "ai-disclosure-missing",
+      "level" : "warning",
+      "message" : {
+        "text" : "aiDisclosure: 命中 [未声明] 缺少 AI 内容披露"
+      },
+      "properties" : {
+        "category" : "ai_disclosure",
+        "matchedText" : "未声明",
+        "suggestion" : "后台补披露字段"
+      }
+    } ]
+  } ]
+}

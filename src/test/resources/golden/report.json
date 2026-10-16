@@ -1,0 +1,30 @@
+{
+  "tool" : "listguard",
+  "toolVersion" : "0.1.0",
+  "listingId" : "SKU-001",
+  "overall" : "RED",
+  "rulePack" : {
+    "name" : "amazon-us",
+    "platform" : "amazon",
+    "market" : "US",
+    "version" : "2026.10",
+    "updated" : "2026-10-16"
+  },
+  "findings" : [ {
+    "ruleId" : "promo-free-shipping",
+    "category" : "promo_word",
+    "severity" : "RED",
+    "field" : "title",
+    "matchedText" : "free shipping",
+    "message" : "促销词违反平台政策",
+    "suggestion" : "删除促销表述"
+  }, {
+    "ruleId" : "ai-disclosure-missing",
+    "category" : "ai_disclosure",
+    "severity" : "YELLOW",
+    "field" : "aiDisclosure",
+    "matchedText" : "未声明",
+    "message" : "缺少 AI 内容披露",
+    "suggestion" : "后台补披露字段"
+  } ]
+}
