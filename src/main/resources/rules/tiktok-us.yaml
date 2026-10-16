@@ -57,7 +57,7 @@ rules:
   - id: cert-fda
     category: certification_claim
     severity: RED
-    patterns: ["fda approved", "cures", "treats"]
+    patterns: ['fda approved', 're:\bcures\b', 're:\btreats\b']
     message: 医疗功效/认证声明，非药品严禁
     suggestion: 删除
   - id: cert-organic

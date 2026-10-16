@@ -51,4 +51,38 @@ class RulePackLoaderTest {
                 "name: bad\nplatform: x\nmarket: us\nversion: \"\"\nrules: []\n");
         assertThrows(IllegalStateException.class, () -> RulePackLoader.load(dir.resolve("bad.yaml")));
     }
+
+    @Test
+    void blankPattern_failsFastWithRuleIdAndPath(@TempDir Path dir) throws Exception {
+        Files.writeString(dir.resolve("blank.yaml"),
+                "name: blank\nplatform: x\nmarket: us\nversion: \"0.1\"\nupdated: \"2026-10-16\"\n"
+                        + "rules:\n  - id: r-blank\n    category: promo_word\n    severity: RED\n"
+                        + "    patterns: [\"   \"]\n    message: m\n    suggestion: s\n");
+        var e = assertThrows(IllegalStateException.class, () -> RulePackLoader.load(dir.resolve("blank.yaml")));
+        assertTrue(e.getMessage().contains("r-blank"));
+        assertTrue(e.getMessage().contains("blank.yaml"));
+    }
+
+    @Test
+    void greenSeverity_rejected(@TempDir Path dir) throws Exception {
+        Files.writeString(dir.resolve("green.yaml"),
+                "name: g\nplatform: x\nmarket: us\nversion: \"0.1\"\nupdated: \"2026-10-16\"\n"
+                        + "rules:\n  - id: rg\n    category: promo_word\n    severity: GREEN\n"
+                        + "    patterns: [word]\n    message: m\n    suggestion: s\n");
+        assertThrows(IllegalStateException.class, () -> RulePackLoader.load(dir.resolve("green.yaml")));
+    }
+
+    @Test
+    void topLevelNotMap_failsFastWithPath(@TempDir Path dir) throws Exception {
+        Files.writeString(dir.resolve("list.yaml"), "- a\n- b\n");
+        var e = assertThrows(IllegalStateException.class, () -> RulePackLoader.load(dir.resolve("list.yaml")));
+        assertTrue(e.getMessage().contains("list.yaml"));
+    }
+
+    @Test
+    void malformedYamlSyntax_failsFastWithPath(@TempDir Path dir) throws Exception {
+        Files.writeString(dir.resolve("broken.yaml"), "name: [unclosed\n  bad:\n\t- tab indent\n");
+        var e = assertThrows(IllegalStateException.class, () -> RulePackLoader.load(dir.resolve("broken.yaml")));
+        assertTrue(e.getMessage().contains("broken.yaml"));
+    }
 }

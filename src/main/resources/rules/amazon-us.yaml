@@ -57,7 +57,7 @@ rules:
   - id: absolute-cure
     category: absolute_claim
     severity: RED
-    patterns: ["cure", "treat disease", "heals"]
+    patterns: ["re:\\bcure\\b", "re:\\btreat disease\\b", "re:\\bheals\\b"]
     message: 疾病治疗类声明，非药品类目严格禁止
     suggestion: 删除所有疾病治疗相关表述
   - id: cert-fda
@@ -87,7 +87,7 @@ rules:
   - id: cert-organic
     category: certification_claim
     severity: YELLOW
-    patterns: ["organic"]
+    patterns: ['re:\borganic\b']
     message: 有机声明需 USDA 等认证，食品/美妆类目高敏感
     suggestion: 无认证删除 organic 表述
   - id: banned-covid

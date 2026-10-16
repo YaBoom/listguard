@@ -40,34 +40,32 @@ public class RuleEngine {
 
     public List<Finding> scan(Listing listing) {
         Map<String, Finding> uniq = new LinkedHashMap<>();
-        collect(listing.id(), "title", listing.title(), uniq);
+        collect("title", listing.title(), uniq);
         List<String> bullets = listing.bullets() == null ? List.of() : listing.bullets();
         for (int i = 0; i < bullets.size(); i++) {
-            collect(listing.id(), "bullets[" + i + "]", bullets.get(i), uniq);
+            collect("bullets[" + i + "]", bullets.get(i), uniq);
         }
-        collect(listing.id(), "description", listing.description(), uniq);
+        collect("description", listing.description(), uniq);
         List<String> keywords = listing.keywords() == null ? List.of() : listing.keywords();
         for (int i = 0; i < keywords.size(); i++) {
-            collect(listing.id(), "keywords[" + i + "]", keywords.get(i), uniq);
+            collect("keywords[" + i + "]", keywords.get(i), uniq);
         }
         return List.copyOf(uniq.values());
     }
 
-    private void collect(String listingId, String field, String text, Map<String, Finding> uniq) {
+    private void collect(String field, String text, Map<String, Finding> uniq) {
         if (text == null || text.isBlank()) {
             return;
         }
         String folded = TextNormalizer.fold(text);
         String condensed = TextNormalizer.condense(text);
         for (CompiledRule cr : rules) {
-            String hit = cr.match(folded, condensed);
-            if (hit == null) {
-                continue;
+            for (String hit : cr.matchAll(folded, condensed)) {
+                String key = cr.rule().id() + "|" + field + "|" + hit;
+                uniq.putIfAbsent(key, new Finding(
+                        cr.rule().id(), cr.rule().category(), cr.rule().severity(),
+                        field, hit, cr.rule().message(), cr.rule().suggestion()));
             }
-            String key = cr.rule().id() + "|" + field;
-            uniq.putIfAbsent(key, new Finding(
-                    cr.rule().id(), cr.rule().category(), cr.rule().severity(),
-                    field, hit, cr.rule().message(), cr.rule().suggestion()));
         }
     }
 
@@ -91,20 +89,27 @@ public class RuleEngine {
 
     private record CompiledRule(Rule rule, List<String> literals, List<Pattern> regexes) {
 
-        /** 返回命中片段（用于展示），未命中返回 null。 */
-        String match(String foldedText, String condensedText) {
+        /** 返回该规则在当前字段的全部命中片段（去重后），无命中返回空列表。 */
+        List<String> matchAll(String foldedText, String condensedText) {
+            List<String> hits = new ArrayList<>();
             for (String literal : literals) {
-                if (foldedText.contains(literal) || condensedText.contains(TextNormalizer.condense(literal))) {
-                    return literal;
+                if (foldedText.contains(literal)
+                        || condensedText.contains(TextNormalizer.condense(literal))) {
+                    if (!hits.contains(literal)) {
+                        hits.add(literal);
+                    }
                 }
             }
             for (Pattern p : regexes) {
                 Matcher m = p.matcher(foldedText);
-                if (m.find()) {
-                    return m.group();
+                while (m.find()) {
+                    String g = m.group();
+                    if (!hits.contains(g)) {
+                        hits.add(g);
+                    }
                 }
             }
-            return null;
+            return hits;
         }
     }
 }

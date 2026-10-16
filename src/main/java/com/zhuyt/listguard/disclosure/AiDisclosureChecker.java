@@ -22,6 +22,8 @@ public class AiDisclosureChecker {
     private static final int RED_THRESHOLD = 2;
     private static final int YELLOW_THRESHOLD = 3;
 
+    private static final List<String> KNOWN_VALUES = List.of("human", "assisted", "ai_generated");
+
     public List<Finding> check(Listing listing) {
         List<Finding> findings = new ArrayList<>();
         String disclosure = listing.aiDisclosure();
@@ -34,18 +36,27 @@ public class AiDisclosureChecker {
                     "在卖家后台商品信息模板中如实选择：完全人工 / 部分AI辅助 / 完全AI生成"));
             return findings;
         }
-        if ("ai_generated".equalsIgnoreCase(disclosure)) {
+        String d = disclosure.trim().toLowerCase();
+        if (!KNOWN_VALUES.contains(d)) {
+            findings.add(new Finding("ai-disclosure-unknown", "ai_disclosure", Severity.YELLOW,
+                    "aiDisclosure",
+                    disclosure,
+                    "未知的 AI 披露值: " + disclosure + "（合法值：human / assisted / ai_generated），无法判定披露状态，视为未声明风险",
+                    "修正为合法值之一后在后台如实填写披露字段"));
+            return findings;
+        }
+        if ("ai_generated".equals(d)) {
             return findings;
         }
         int signals = countSignals(listing);
-        if ("human".equalsIgnoreCase(disclosure) && signals >= RED_THRESHOLD) {
+        if ("human".equals(d) && signals >= RED_THRESHOLD) {
             findings.add(new Finding("ai-disclosure-human-risk", "ai_disclosure", Severity.RED,
                     "text",
                     signals + " 处 AI 痕迹特征",
                     "文案疑似 AI 生成但披露为完全人工，平台 AI 扫描检测（2026 准确率约 89%）"
                             + "可能判定漏标，触发处罚",
                     "如部分由 AI 生成，改为「部分AI辅助」并保留生成记录"));
-        } else if ("assisted".equalsIgnoreCase(disclosure) && signals >= YELLOW_THRESHOLD) {
+        } else if ("assisted".equals(d) && signals >= YELLOW_THRESHOLD) {
             findings.add(new Finding("ai-disclosure-assisted-heavy", "ai_disclosure", Severity.YELLOW,
                     "text",
                     signals + " 处 AI 痕迹特征",

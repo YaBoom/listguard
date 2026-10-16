@@ -3,7 +3,9 @@ package com.zhuyt.listguard.rules;
 import com.zhuyt.listguard.model.Rule;
 import com.zhuyt.listguard.model.RulePack;
 import com.zhuyt.listguard.model.Severity;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.error.YAMLException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,19 +35,38 @@ public final class RulePackLoader {
             throw new IllegalArgumentException("未知规则包: " + name);
         }
         try (in) {
-            return parse(new Yaml().load(in), location);
+            return parse(loadYaml(in, location), location);
         } catch (IOException e) {
             throw new IllegalStateException("规则包读取失败: " + location, e);
+        } catch (YAMLException e) {
+            throw new IllegalStateException("YAML 解析失败: " + location, e);
         }
     }
 
     /** 从外部 YAML 文件加载（供 --rules-dir 自定义词库）。 */
     public static RulePack load(Path file) {
         try (InputStream in = Files.newInputStream(file)) {
-            return parse(new Yaml().load(in), file.toString());
+            return parse(loadYaml(in, file.toString()), file.toString());
         } catch (IOException e) {
             throw new IllegalStateException("规则包读取失败: " + file, e);
+        } catch (YAMLException e) {
+            throw new IllegalStateException("YAML 解析失败: " + file, e);
         }
+    }
+
+    private static Map<String, Object> loadYaml(InputStream in, String location) {
+        Object root;
+        try {
+            root = new Yaml(new LoaderOptions()).load(in);
+        } catch (YAMLException e) {
+            throw new IllegalStateException("YAML 解析失败: " + location, e);
+        }
+        if (!(root instanceof Map<?, ?> m)) {
+            throw new IllegalStateException("规则包顶层必须是映射: " + location);
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = (Map<String, Object>) m;
+        return result;
     }
 
     private static RulePack parse(Map<String, Object> root, String location) {
@@ -88,13 +109,17 @@ public final class RulePackLoader {
         } catch (IllegalArgumentException e) {
             throw new IllegalStateException("非法 severity [" + severityStr + "]: " + location);
         }
+        if (severity == Severity.GREEN) {
+            throw new IllegalStateException("规则 severity 不能为 GREEN（GREEN 仅用于整体分级）: " + id + "@" + location);
+        }
         Object rawPatterns = m.get("patterns");
         List<String> patterns = new ArrayList<>();
         if (rawPatterns instanceof List<?> list) {
             for (Object p : list) {
-                if (p != null) {
-                    patterns.add(p.toString());
+                if (p == null || p.toString().isBlank()) {
+                    throw new IllegalStateException("规则 pattern 不能为空: " + id + "@" + location);
                 }
+                patterns.add(p.toString());
             }
         }
         if (patterns.isEmpty() && !"ai_disclosure".equals(category)) {

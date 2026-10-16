@@ -52,4 +52,19 @@ class AiDisclosureCheckerTest {
         var l = new Listing("1", "t", List.of(), "", List.of(), "amazon", "ai_generated");
         assertTrue(checker.check(l).isEmpty());
     }
+
+    @Test
+    void unknownDisclosureValue_yellowWithOriginalValue() {
+        var l = new Listing("1", "t", List.of(), "", List.of(), "amazon", "AI-generated");
+        var f = checker.check(l);
+        assertEquals(1, f.size());
+        assertEquals(Severity.YELLOW, f.get(0).severity());
+        assertTrue(f.get(0).message().contains("AI-generated"));
+    }
+
+    @Test
+    void disclosureWithTrailingSpace_normalized() {
+        var l = new Listing("1", "t", List.of(), "", List.of(), "amazon", " ai_generated ");
+        assertTrue(checker.check(l).isEmpty());
+    }
 }

@@ -58,11 +58,33 @@ class RuleEngineTest {
     }
 
     @Test
-    void dedup_sameRuleSameFieldSameText() {
-        var l = new Listing("1", "best seller best seller", List.of(), "", List.of(), "amazon", "human");
-        var fs = engine.scan(l);
-        long count = fs.stream().filter(f -> f.ruleId().equals("promo-best-seller")).count();
-        assertEquals(1, count);
+    void dedup_repeatedSameText_singleFinding() {
+        var l = new Listing("1", "free shipping free shipping", List.of(), "", List.of(), "amazon", "human");
+        var fs = engine.scan(l).stream().filter(f -> f.ruleId().equals("promo-free-shipping")).toList();
+        assertEquals(1, fs.size());
+    }
+
+    @Test
+    void dedup_variantPatterns_sameRuleTwoFindings() {
+        // best seller 与 bestseller 是同规则的两个不同命中片段，各自保留（FixSuggester 依赖 matchedText）
+        var l = new Listing("1", "best seller bestseller", List.of(), "", List.of(), "amazon", "human");
+        var fs = engine.scan(l).stream().filter(f -> f.ruleId().equals("promo-best-seller")).toList();
+        assertEquals(2, fs.size());
+    }
+
+    @Test
+    void multiPattern_sameRuleBothMatched_yieldsTwoFindings() {
+        var l = new Listing("1", "t", List.of(), "top rated number one product", List.of(), "amazon", "human");
+        var fs = engine.scan(l).stream().filter(f -> f.ruleId().equals("absolute-no1")).toList();
+        assertEquals(2, fs.size());
+        assertTrue(fs.stream().anyMatch(f -> f.matchedText().equals("top rated")));
+        assertTrue(fs.stream().anyMatch(f -> f.matchedText().equals("number one")));
+    }
+
+    @Test
+    void wordBoundary_cureDoesNotMatchSecure() {
+        var l = new Listing("1", "Secure payment checkout", List.of(), "", List.of(), "amazon", "human");
+        assertTrue(engine.scan(l).stream().noneMatch(f -> f.ruleId().equals("absolute-cure")));
     }
 
     @Test

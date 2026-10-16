@@ -14,4 +14,9 @@ public record Listing(
         List<String> keywords,
         String platform,
         String aiDisclosure) {
+
+    public Listing {
+        bullets = bullets == null ? List.of() : List.copyOf(bullets);
+        keywords = keywords == null ? List.of() : List.copyOf(keywords);
+    }
 }
