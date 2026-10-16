@@ -1,0 +1,41 @@
+{
+  "name": "listguard-mcp",
+  "version": "0.1.0",
+  "description": "Cross-border e-commerce listing compliance audit for AI agents. Deterministic rule engine (no LLM judging): banned words, absolute claims, certification risks, trademark risks and 2026 AI content disclosure. MCP server over stdio, zero dependencies.",
+  "license": "MIT",
+  "author": "ZhuYT",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "amazon",
+    "temu",
+    "tiktok-shop",
+    "compliance",
+    "listing",
+    "restricted-words",
+    "cross-border-ecommerce",
+    "ai-agent"
+  ],
+  "bin": {
+    "listguard-mcp": "mcp/server.mjs"
+  },
+  "main": "mcp/server.mjs",
+  "files": [
+    "mcp/server.mjs",
+    "web/assets/engine.js",
+    "web/assets/rulepacks.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node mcp/server.mjs",
+    "test": "node web/tests/engine-parity.test.mjs && node web/tests/rulepack-sync.test.mjs && node mcp/server.test.mjs",
+    "test:parity": "node web/tests/engine-parity.test.mjs",
+    "test:rules": "node web/tests/rulepack-sync.test.mjs",
+    "test:mcp": "node mcp/server.test.mjs"
+  }
+}

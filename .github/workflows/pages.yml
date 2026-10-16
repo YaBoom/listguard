@@ -1,0 +1,108 @@
+name: Deploy online checker to GitHub Pages
+
+# 目的：给在线检测台一个公开 URL —— 这是「让别人看见」的物理前提。
+# 仓库设置里需要先把 Pages 的 Source 选为 GitHub Actions。
+# 部署地址：https://<owner>.github.io/<repo>/
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 入口文件名是描述性的（利于 SEO 与技能规范），但 Pages 根路径必须是 index.html。
+      # 因此在部署阶段复制一份为 index.html，源仓库保持单一入口不产生第二个 HTML。
+      # 同时把页面里的仓库地址占位符替换成本仓库真实地址，页面内所有 GitHub 链接即可点开。
+      - name: Stage site
+        env:
+          REPO_FULL_NAME: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          ENTRY="web/listguard-listing-compliance-checker.html"
+          test -f "$ENTRY"
+          rm -rf _site
+          mkdir -p _site/assets
+          cp "$ENTRY" _site/index.html
+          cp "$ENTRY" _site/checker.html
+          cp web/assets/*.js _site/assets/
+
+          # 注入真实仓库地址（替换站点配置里的占位符）
+          REPO_URL="https://github.com/${REPO_FULL_NAME}"
+          for f in _site/index.html _site/checker.html; do
+            sed -i "s|__REPO_URL__|${REPO_URL}|g" "$f"
+          done
+          # 占位符必须已被替换干净，否则页面链接会指向无效地址
+          if grep -rq '__REPO_URL__' _site/; then
+            echo "repo url placeholder not replaced"; exit 1
+          fi
+          echo "injected repo url: ${REPO_URL}"
+
+      # 搜索引擎收录需要 robots.txt 与 sitemap.xml；长尾词页面靠这两个文件被发现。
+      - name: Write robots and sitemap
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          BASE="https://${OWNER}.github.io/${REPO_NAME}"
+          printf 'User-agent: *\nAllow: /\nSitemap: %s/sitemap.xml\n' "$BASE" > _site/robots.txt
+          cat > _site/sitemap.xml <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+            <url>
+              <loc>${BASE}/</loc>
+              <changefreq>weekly</changefreq>
+              <priority>1.0</priority>
+            </url>
+            <url>
+              <loc>${BASE}/checker.html</loc>
+              <changefreq>weekly</changefreq>
+              <priority>0.8</priority>
+            </url>
+          </urlset>
+          EOF
+
+      - name: Verify staged site
+        run: |
+          set -euo pipefail
+          test -f _site/index.html
+          test -f _site/assets/app.js
+          test -f _site/assets/engine.js
+          test -f _site/assets/rulepacks.js
+          # 入口引用的本地脚本必须都存在，否则线上白屏
+          grep -o 'assets/[a-z]*\.js' _site/index.html | sort -u | while read -r f; do
+            test -f "_site/$f" || { echo "missing: $f"; exit 1; }
+          done
+          echo "staged site OK"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,17 @@
+# Smithery 发布配置：https://smithery.ai
+# 在 Smithery 用 GitHub 账号登录后指向本仓库即可发布；
+# startCommand 决定用户「一键安装」后如何拉起 server。
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties: {}
+    description: listguard 无需任何配置：规则包内置，核心审计不依赖外部服务或密钥。
+  exampleConfig: {}
+  commandFunction: |-
+    ({ config }) => ({
+      type: 'stdio',
+      command: 'node',
+      args: ['mcp/server.mjs'],
+      env: {}
+    })

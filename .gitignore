@@ -7,3 +7,12 @@ target/
 .settings/
 *.log
 dependency-reduced-pom.xml
+
+# 商业文档：变现路径、定价锚点、竞品分析，仅本地保留，不进公开仓库
+docs/market-assessment.md
+docs/commercialization-plan.md
+docs/plans/
+
+# 本地定版快照与技能元数据：不属于运行内容，不需要公开
+web/history/
+.apps-builder/

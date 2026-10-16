@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ListGuard 免费 Listing 违禁词检测 - 亚马逊/Temu/TikTok 合规检查工具</title>
+<meta name="description" content="免费在线检测亚马逊 listing 违禁词、绝对化用语、认证声明与商标风险，覆盖 Temu 与 TikTok Shop 规则包。纯浏览器本地计算，文案不上传服务器，支持 2026 AI 内容披露新规检查。Amazon restricted words checker。">
+<meta name="keywords" content="亚马逊listing违禁词检测,亚马逊敏感词查询,listing合规检查,amazon restricted words checker,amazon listing compliance tool,prohibited keywords amazon,Temu违禁词,TikTok Shop合规,AI内容披露">
+<meta property="og:title" content="ListGuard - 跨境 Listing 合规审计引擎">
+<meta property="og:description" content="免费检测亚马逊/Temu/TikTok listing 违禁词与合规风险，纯本地计算不上传文案，可接入 CI 流水线与 AI agent 工作流。">
+<meta property="og:type" content="website">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230d1117'/><path d='M30 26h40v14H30zM30 52h28v10H30zM64 50l6 6 12-14 5 5-17 19-11-11z' fill='%233fb950'/></svg>">
+<script>
+/* SECTION: site-config
+ * 站点配置。repoUrl 决定页面内所有 GitHub 链接指向哪里。
+ * 通过 GitHub Actions 部署时，流水线会把占位符替换成真实仓库地址，无需手工修改；
+ * 本地双击打开时保持占位符，相关链接会自动降级为不可点状态（不会指向猜测的地址）。
+ */
+window.LISTGUARD_CONFIG = {
+  repoUrl: "__REPO_URL__"
+};
+</script>
+<style>
+/* SECTION: reset-tokens */
+*, *::before, *::after { box-sizing: border-box; }
+:root {
+  color-scheme: dark;   /* 让原生 select 下拉、滚动条、表单控件跟随深色主题，避免白底突兀 */
+  --bg: #0a0d13;
+  --bg-elev: #10141c;
+  --panel: #141922;
+  --panel-2: #1a2029;
+  --border: #232b38;
+  --border-strong: #2f3947;
+  --text: #e6edf3;
+  --text-2: #adbac7;
+  --muted: #768390;
+  --red: #ff6b6b;
+  --red-bg: rgba(255, 107, 107, 0.11);
+  --red-border: rgba(255, 107, 107, 0.32);
+  --yellow: #f0b72f;
+  --yellow-bg: rgba(240, 183, 47, 0.10);
+  --yellow-border: rgba(240, 183, 47, 0.30);
+  --green: #3fb950;
+  --green-bg: rgba(63, 185, 80, 0.11);
+  --green-border: rgba(63, 185, 80, 0.30);
+  --accent: #58a6ff;
+  --accent-bg: rgba(88, 166, 255, 0.10);
+  --mono: "SFMono-Regular", "Cascadia Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--sans); font-size: 15px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: var(--mono); }
+button { font-family: inherit; font-size: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* SECTION: layout */
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 20px; }
+.skip-link {
+  position: absolute; left: -9999px; top: 0; z-index: 100;
+  background: var(--accent); color: #04121f; padding: 8px 16px; border-radius: 0 0 6px 0;
+}
+.skip-link:focus { left: 0; }
+
+/* SECTION: topbar */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(10, 13, 19, 0.92); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.topbar-in { display: flex; align-items: center; gap: 16px; height: 58px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
+.brand:hover { text-decoration: none; }
+.brand-mark { width: 26px; height: 26px; flex: none; }
+.brand-name { font-size: 16px; }
+.brand-tag {
+  font-size: 11px; color: var(--muted); font-weight: 500;
+  border-left: 1px solid var(--border-strong); padding-left: 10px; margin-left: 2px;
+}
+.topnav { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.topnav a {
+  color: var(--text-2); padding: 6px 11px; border-radius: var(--radius-sm);
+  font-size: 13.5px; transition: background .15s, color .15s;
+}
+.topnav a:hover { background: var(--panel-2); color: var(--text); text-decoration: none; }
+.btn-star {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--border-strong); background: var(--panel-2);
+  color: var(--text) !important; font-weight: 600;
+}
+.btn-star:hover { border-color: var(--accent); background: var(--accent-bg); text-decoration: none; }
+@media (max-width: 860px) { .topnav .nav-hide { display: none; } .brand-tag { display: none; } }
+
+/* SECTION: hero */
+.hero { padding: 52px 0 34px; border-bottom: 1px solid var(--border); }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 44px; align-items: center; }
+@media (max-width: 940px) { .hero-grid { grid-template-columns: 1fr; gap: 30px; } }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600; letter-spacing: .04em;
+  color: var(--accent); background: var(--accent-bg);
+  border: 1px solid rgba(88, 166, 255, 0.25);
+  padding: 4px 11px; border-radius: 999px; margin-bottom: 18px;
+}
+.pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+h1 { font-size: clamp(28px, 4.2vw, 42px); line-height: 1.18; letter-spacing: -0.025em; margin: 0 0 16px; font-weight: 800; }
+h1 .grad {
+  background: linear-gradient(92deg, #58a6ff 0%, #79c0ff 45%, #3fb950 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.lede { font-size: 16.5px; color: var(--text-2); margin: 0 0 22px; max-width: 60ch; }
+.lede strong { color: var(--text); font-weight: 600; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 26px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 18px; border-radius: var(--radius-sm); font-weight: 600; font-size: 14.5px;
+  border: 1px solid transparent; transition: filter .15s, background .15s, border-color .15s, transform .1s;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--accent); color: #04121f; }
+.btn-primary:hover { filter: brightness(1.12); text-decoration: none; }
+.btn-ghost { background: var(--panel-2); border-color: var(--border-strong); color: var(--text); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.hero-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.stat { background: var(--panel); padding: 14px 16px; }
+.stat-n { font-size: 23px; font-weight: 800; letter-spacing: -0.02em; font-family: var(--mono); }
+.stat-l { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.stat-n.c-r { color: var(--red); } .stat-n.c-y { color: var(--yellow); } .stat-n.c-g { color: var(--green); }
+.hero-side {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; position: relative; overflow: hidden;
+}
+.hero-side::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, var(--red), var(--yellow), var(--green));
+}
+.term-bar { display: flex; align-items: center; gap: 6px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+.term-title { margin-left: 8px; font-size: 11.5px; color: var(--muted); font-family: var(--mono); }
+.term { font-family: var(--mono); font-size: 12.5px; line-height: 1.85; color: var(--text-2); margin: 0; overflow-x: auto; }
+.term .c { color: var(--muted); }
+.term .k { color: #79c0ff; }
+.term .rd { color: var(--red); font-weight: 600; }
+.term .yl { color: var(--yellow); font-weight: 600; }
+.term .gr { color: var(--green); font-weight: 600; }
+.term .st { color: #a5d6ff; }
+
+/* SECTION: alert */
+.alert {
+  display: flex; gap: 13px; align-items: flex-start;
+  background: var(--yellow-bg); border: 1px solid var(--yellow-border);
+  border-left: 3px solid var(--yellow);
+  border-radius: var(--radius-sm); padding: 13px 16px; margin: 26px 0 0;
+}
+.alert-ico { flex: none; margin-top: 1px; }
+.alert-t { font-weight: 700; color: var(--yellow); font-size: 14px; margin-bottom: 3px; }
+.alert-b { font-size: 13.5px; color: var(--text-2); }
+.alert-b strong { color: var(--text); }
+
+/* SECTION: workspace */
+.workspace { padding: 40px 0 46px; }
+.sec-head { margin-bottom: 22px; }
+.sec-head h2 { font-size: 22px; margin: 0 0 6px; letter-spacing: -0.015em; font-weight: 750; }
+.sec-head p { margin: 0; color: var(--muted); font-size: 14px; }
+.ws-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 1020px) { .ws-grid { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.card-hd {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 13px 16px; border-bottom: 1px solid var(--border); background: var(--panel-2);
+}
+.card-hd h3 { margin: 0; font-size: 14px; font-weight: 700; letter-spacing: .01em; }
+.card-hd .sp { margin-left: auto; }
+.card-bd { padding: 16px; }
+
+/* SECTION: form */
+.field { margin-bottom: 15px; }
+.field:last-child { margin-bottom: 0; }
+.lbl { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-2); margin-bottom: 6px; }
+.lbl .req { color: var(--red); }
+.lbl .hint { font-weight: 400; color: var(--muted); font-size: 11.5px; margin-left: auto; }
+input[type=text], textarea, select {
+  width: 100%; background: var(--bg-elev); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  padding: 9px 11px; font-family: inherit; font-size: 14px; line-height: 1.55;
+  transition: border-color .15s, background .15s;
+}
+textarea { resize: vertical; min-height: 66px; }
+input[type=text]:focus, textarea:focus, select:focus {
+  outline: none; border-color: var(--accent); background: #0d1219;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.13);
+}
+textarea::placeholder, input::placeholder { color: #4d5a68; }
+.select-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+@media (max-width: 520px) { .select-row { grid-template-columns: 1fr; } }
+.seg { position: relative; }
+.seg input { position: absolute; opacity: 0; inset: 0; cursor: pointer; margin: 0; }
+.seg span {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  border: 1px solid var(--border-strong); background: var(--bg-elev);
+  border-radius: var(--radius-sm); padding: 10px 8px; text-align: center;
+  transition: border-color .15s, background .15s;
+}
+.seg .p-name { font-size: 13.5px; font-weight: 650; }
+.seg .p-meta { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.seg input:checked + span { border-color: var(--accent); background: var(--accent-bg); }
+.seg input:checked + span .p-name { color: var(--accent); }
+.seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.bullet-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 7px; }
+.bullet-row textarea { min-height: 44px; }
+.bullet-idx {
+  flex: none; width: 24px; height: 24px; margin-top: 9px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 5px; background: var(--panel-2); border: 1px solid var(--border-strong);
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+}
+.icon-btn {
+  flex: none; width: 30px; height: 30px; margin-top: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  color: var(--muted); transition: color .15s, border-color .15s, background .15s;
+}
+.icon-btn:hover { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
+.icon-btn:disabled { opacity: .32; cursor: not-allowed; }
+.icon-btn:disabled:hover { color: var(--muted); border-color: var(--border-strong); background: transparent; }
+.btn-mini {
+  background: transparent; border: 1px dashed var(--border-strong); color: var(--text-2);
+  border-radius: var(--radius-sm); padding: 7px 12px; font-size: 12.5px; font-weight: 600;
+  transition: border-color .15s, color .15s;
+}
+.btn-mini:hover { border-color: var(--accent); color: var(--accent); }
+.pill-row { display: flex; flex-wrap: wrap; gap: 7px; }
+.pill {
+  background: var(--bg-elev); border: 1px solid var(--border-strong); border-radius: 999px;
+  padding: 5px 8px 5px 12px; font-size: 12.5px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px; color: var(--text);
+}
+.pill .chip { font-family: var(--mono); color: var(--muted); font-weight: 500; font-size: 11px; }
+.pill button {
+  background: transparent; border: none; color: var(--muted); padding: 0 2px;
+  font-size: 15px; line-height: 1; display: flex; align-items: center;
+}
+.pill button:hover { color: var(--red); }
+.kw-input-row { display: flex; gap: 7px; margin-top: 8px; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 9px; padding-top: 15px; margin-top: 17px; border-top: 1px solid var(--border); }
+.btn-run { background: var(--green); color: #04140a; padding: 11px 22px; font-size: 15px; }
+.btn-run:hover { filter: brightness(1.1); }
+.btn-clear { background: transparent; border-color: var(--border-strong); color: var(--text-2); }
+.btn-clear:hover { border-color: var(--red); color: var(--red); background: var(--red-bg); }
+.local-note {
+  display: flex; align-items: center; gap: 7px; margin-top: 13px;
+  font-size: 12px; color: var(--muted);
+}
+.local-note svg { flex: none; }
+
+/* SECTION: report */
+.report-empty { text-align: center; padding: 46px 20px; color: var(--muted); }
+.report-empty svg { margin-bottom: 12px; opacity: .55; }
+.report-empty p { margin: 0 0 4px; font-size: 14px; }
+.report-empty .sub { font-size: 12.5px; color: #5a6673; }
+.verdict { display: flex; align-items: center; gap: 14px; padding: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 15px; border-radius: 999px; font-weight: 800; font-size: 15px;
+  font-family: var(--mono); letter-spacing: .04em; border: 1px solid;
+}
+.badge.RED { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+.badge.YELLOW { background: var(--yellow-bg); color: var(--yellow); border-color: var(--yellow-border); }
+.badge.GREEN { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+.badge-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.verdict-txt { font-size: 13.5px; color: var(--text-2); }
+.verdict-txt strong { color: var(--text); }
+.counts { margin-left: auto; display: flex; gap: 7px; }
+.count {
+  display: flex; align-items: center; gap: 5px; padding: 5px 11px;
+  border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-elev);
+  font-family: var(--mono); font-size: 12.5px; font-weight: 700;
+}
+.count .cdot { width: 7px; height: 7px; border-radius: 50%; }
+.count.r { color: var(--red); } .count.r .cdot { background: var(--red); }
+.count.y { color: var(--yellow); } .count.y .cdot { background: var(--yellow); }
+.count.g { color: var(--green); } .count.g .cdot { background: var(--green); }
+@media (max-width: 620px) { .counts { margin-left: 0; } }
+
+.meta-bar {
+  display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 16px;
+  border-bottom: 1px solid var(--border); background: var(--bg-elev);
+  font-size: 11.5px; color: var(--muted); font-family: var(--mono);
+}
+.meta-bar b { color: var(--text-2); font-weight: 600; }
+.findings { padding: 14px 16px; display: flex; flex-direction: column; gap: 11px; max-height: 620px; overflow-y: auto; }
+.finding { border: 1px solid var(--border); border-left-width: 3px; border-radius: var(--radius-sm); background: var(--bg-elev); overflow: hidden; }
+.finding.RED { border-left-color: var(--red); }
+.finding.YELLOW { border-left-color: var(--yellow); }
+.finding-hd { display: flex; align-items: center; gap: 9px; padding: 9px 12px; flex-wrap: wrap; }
+.sev { font-family: var(--mono); font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 4px; letter-spacing: .06em; }
+.sev.RED { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+.sev.YELLOW { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-border); }
+.rid { font-family: var(--mono); font-size: 12px; color: var(--text-2); font-weight: 600; }
+.cat {
+  font-size: 11px; color: var(--muted); background: var(--panel-2);
+  border: 1px solid var(--border); padding: 1px 7px; border-radius: 999px;
+}
+.fld { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.finding-bd { padding: 0 12px 11px; }
+.hit {
+  font-family: var(--mono); font-size: 12.5px; padding: 6px 9px; margin-bottom: 8px;
+  border-radius: var(--radius-sm); background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;
+}
+.hit .hk { color: var(--muted); font-size: 11px; font-family: var(--sans); }
+.hit .hv { color: var(--red); font-weight: 700; word-break: break-all; }
+.finding.YELLOW .hit .hv { color: var(--yellow); }
+.msg { font-size: 13px; color: var(--text-2); margin-bottom: 7px; }
+.sug { font-size: 13px; color: var(--text-2); display: flex; gap: 7px; align-items: flex-start; padding-top: 7px; border-top: 1px dashed var(--border); }
+.sug-ico { flex: none; margin-top: 2px; color: var(--green); }
+.sug b { color: var(--green); font-weight: 700; font-size: 11.5px; letter-spacing: .03em; }
+.all-clear { text-align: center; padding: 38px 20px; }
+.all-clear svg { margin-bottom: 10px; }
+.all-clear .t { font-size: 16px; font-weight: 750; color: var(--green); margin-bottom: 5px; }
+.all-clear .b { font-size: 13px; color: var(--muted); max-width: 44ch; margin: 0 auto; }
+
+/* SECTION: highlight */
+.hl-panel { border-top: 1px solid var(--border); background: var(--bg-elev); }
+.hl-hd {
+  display: flex; align-items: center; gap: 9px; padding: 11px 16px;
+  border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.hl-hd h4 { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--text-2); }
+.hl-hd .sp { margin-left: auto; font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.hl-body { padding: 13px 16px; max-height: 300px; overflow-y: auto; }
+.hl-field { margin-bottom: 12px; }
+.hl-field:last-child { margin-bottom: 0; }
+.hl-fname { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 4px; display: flex; gap: 7px; align-items: center; }
+.hl-text {
+  font-size: 13.5px; line-height: 1.85; color: var(--text-2);
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 11px; word-break: break-word; white-space: pre-wrap;
+}
+mark.hl { background: var(--red-bg); color: var(--red); font-weight: 700; padding: 1px 3px; border-radius: 3px; border-bottom: 2px solid var(--red); }
+mark.hl.y { background: var(--yellow-bg); color: var(--yellow); border-bottom-color: var(--yellow); }
+mark.hl.active { background: var(--red); color: #1a0505; border-bottom-color: var(--red); }
+mark.hl.y.active { background: var(--yellow); color: #1a1405; border-bottom-color: var(--yellow); }
+.finding:hover { border-color: var(--border-strong); }
+
+.report-actions { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); background: var(--panel-2); flex-wrap: wrap; }
+.btn-sm { padding: 7px 13px; font-size: 12.5px; border-radius: var(--radius-sm); font-weight: 600; border: 1px solid var(--border-strong); background: var(--bg-elev); color: var(--text-2); display: inline-flex; align-items: center; gap: 6px; }
+.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+.btn-sm.done { border-color: var(--green); color: var(--green); }
+.gate-line { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--muted); align-self: center; }
+.gate-line b.RED { color: var(--red); } .gate-line b.YELLOW { color: var(--yellow); } .gate-line b.GREEN { color: var(--green); }
+@media (max-width: 620px) { .gate-line { margin-left: 0; width: 100%; } }
+
+/* SECTION: how */
+.how { padding: 44px 0; border-top: 1px solid var(--border); }
+.how-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
+@media (max-width: 900px) { .how-grid { grid-template-columns: 1fr; } }
+.how-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.how-n { font-family: var(--mono); font-size: 11px; font-weight: 800; color: var(--accent); letter-spacing: .08em; margin-bottom: 9px; }
+.how-card h4 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
+.how-card p { margin: 0 0 11px; font-size: 13.5px; color: var(--text-2); }
+.how-demo {
+  font-family: var(--mono); font-size: 12px; background: var(--bg-elev);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 11px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.how-demo .in { color: var(--red); text-decoration: line-through; text-decoration-color: rgba(255,107,107,.5); }
+.how-demo .ar { color: var(--muted); }
+.how-demo .out { color: var(--green); font-weight: 600; }
+
+/* SECTION: channels */
+.chan { padding: 44px 0; border-top: 1px solid var(--border); }
+.chan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); gap: 16px; margin-top: 24px; }
+.chan-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; }
+.chan-card:hover { border-color: var(--border-strong); }
+.chan-ico { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; background: var(--accent-bg); border: 1px solid rgba(88,166,255,.22); color: var(--accent); }
+.chan-card h4 { margin: 0 0 7px; font-size: 15px; font-weight: 700; }
+.chan-card p { margin: 0 0 13px; font-size: 13.5px; color: var(--text-2); flex: 1; }
+.chan-card code { display: block; background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 11.5px; color: var(--text-2); overflow-x: auto; margin-bottom: 12px; white-space: pre; }
+.chan-link { font-size: 13px; font-weight: 650; display: inline-flex; align-items: center; gap: 5px; }
+
+/* SECTION: rules-table */
+.rules { padding: 44px 0; border-top: 1px solid var(--border); }
+.rules-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.rules-toolbar input[type=text] { max-width: 300px; }
+.seg-mini { display: flex; gap: 0; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; }
+.seg-mini button { background: var(--bg-elev); border: none; color: var(--muted); padding: 8px 13px; font-size: 12.5px; font-weight: 650; border-right: 1px solid var(--border-strong); }
+.seg-mini button:last-child { border-right: none; }
+.seg-mini button[aria-pressed=true] { background: var(--accent-bg); color: var(--accent); }
+.tbl-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  text-align: left; padding: 10px 13px; background: var(--panel-2); color: var(--muted);
+  font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5;
+}
+tbody td { padding: 10px 13px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(255, 255, 255, 0.022); }
+td.rid-cell { font-family: var(--mono); font-size: 12px; color: var(--text); white-space: nowrap; }
+td.pat-cell { font-family: var(--mono); font-size: 11.5px; max-width: 340px; }
+td.pat-cell .p { display: inline-block; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; margin: 0 3px 3px 0; word-break: break-all; }
+.sev-dot { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; font-weight: 700; }
+.sev-dot::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.sev-dot.RED { color: var(--red); } .sev-dot.YELLOW { color: var(--yellow); }
+@media (max-width: 760px) {
+  thead { display: none; }
+  tbody td { display: block; border-bottom: none; padding: 4px 13px; }
+  tbody tr { display: block; border-bottom: 1px solid var(--border); padding: 9px 0; }
+  td.rid-cell { padding-top: 9px; font-size: 12.5px; }
+  td.pat-cell { max-width: none; }
+}
+.empty-row td { text-align: center; color: var(--muted); padding: 30px 13px; }
+
+/* SECTION: footer */
+footer { border-top: 1px solid var(--border); padding: 32px 0 40px; background: var(--bg-elev); }
+.foot-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)); gap: 30px; }
+@media (max-width: 760px) { .foot-grid { grid-template-columns: 1fr; gap: 22px; } }
+.foot-grid h5 { margin: 0 0 10px; font-size: 12px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; font-weight: 700; }
+.foot-grid ul { list-style: none; margin: 0; padding: 0; }
+.foot-grid li { margin-bottom: 7px; }
+.foot-grid li a { font-size: 13.5px; color: var(--text-2); }
+.foot-grid li a:hover { color: var(--accent); }
+.foot-about p { font-size: 13px; color: var(--muted); margin: 10px 0 0; max-width: 46ch; }
+.foot-bottom { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--border); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--muted); }
+.foot-bottom .sp { margin-left: auto; }
+.disclaimer { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 12.5px; color: var(--muted); margin-top: 14px; }
+.disclaimer strong { color: var(--text-2); }
+
+/* SECTION: toast */
+.toast {
+  position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px);
+  background: var(--panel-2); border: 1px solid var(--border-strong); color: var(--text);
+  padding: 10px 17px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 200;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .5); display: flex; align-items: center; gap: 8px;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.ok { border-color: var(--green-border); color: var(--green); }
+
+/* SECTION: a11y-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: var(--bg-elev); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #3d4855; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#checker">跳到检测区</a>
+
+<!-- SECTION: topbar -->
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="#top">
+      <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true">
+        <rect width="100" height="100" rx="20" fill="#10141c"/>
+        <path d="M28 24h44v13H28zM28 47h30v11H28z" fill="#768390"/>
+        <path d="M60 50l7 7 14-16 6 5-20 23-13-13z" fill="#3fb950"/>
+      </svg>
+      <span class="brand-name">ListGuard</span>
+      <span class="brand-tag">Listing 合规审计引擎</span>
+    </a>
+    <nav class="topnav" aria-label="主导航">
+      <a href="#checker" class="nav-hide">在线检测</a>
+      <a href="#how" class="nav-hide">匹配原理</a>
+      <a href="#rules" class="nav-hide">规则库</a>
+      <a href="#integrate" class="nav-hide">接入</a>
+      <a class="btn-star" id="repo-link" href="#" target="_blank" rel="noopener noreferrer">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+<!-- SECTION: hero -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow"><span class="pulse"></span>开源 · 纯本地计算 · 文案不上传</span>
+        <h1>在商品被平台下架之前<br>先把 <span class="grad">Listing 违规</span> 拦下来</h1>
+        <p class="lede">给商品文案做 <strong>lint</strong>：违禁词、绝对化用语、无证认证声明、商标风险、2026 AI 内容披露，粘贴即查。规则即文件、审计即命令、<strong>阈值即退出码</strong>——能本地跑，也能直接卡进 CI 流水线。</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#checker">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+            免费开始检测
+          </a>
+          <a class="btn btn-ghost" id="repo-link-2" href="#" target="_blank" rel="noopener noreferrer">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 3H3v10h10v-3M9 2h5v5M14 2L7 9"/></svg>
+            查看源码与 CLI
+          </a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat"><div class="stat-n c-r" id="stat-rules">50</div><div class="stat-l">条内置规则</div></div>
+          <div class="stat"><div class="stat-n c-y" id="stat-packs">3</div><div class="stat-l">个平台规则包</div></div>
+          <div class="stat"><div class="stat-n c-g">0</div><div class="stat-l">上传到服务器的字节</div></div>
+        </div>
+      </div>
+      <div class="hero-side">
+        <div class="term-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="term-title">listguard check --platform amazon</span>
+        </div>
+<pre class="term" aria-label="命令行审计输出示例"><span class="c">$</span> java -jar listguard.jar check red-sample.json \
+    --platform amazon --fail-on red
+
+<span class="rd">✗ RED</span>  <span class="st">RED-SAMPLE-001</span>
+  <span class="rd">RED</span>    <span class="k">promo-free-shipping</span>      title
+         <span class="st">"free shipping"</span>
+  <span class="rd">RED</span>    <span class="k">promo-best-seller</span>        title
+         <span class="st">"best seller"</span>
+  <span class="rd">RED</span>    <span class="k">absolute-cure</span>            bullets[0]
+         <span class="st">"cure"</span>
+  <span class="yl">YELLOW</span> <span class="k">ai-disclosure-missing</span>    aiDisclosure
+         <span class="st">"未声明"</span>
+
+<span class="c">8 findings · exit code</span> <span class="rd">1</span> <span class="c">(breach: red)</span></pre>
+      </div>
+    </div>
+
+    <div class="alert" role="note">
+      <svg class="alert-ico" width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.5L15 14H1L8 1.5zM7.25 6v3.5h1.5V6h-1.5zm0 4.5v1.5h1.5V10.5h-1.5z"/></svg>
+      <div>
+        <div class="alert-t">2026-08 亚马逊 AI 内容披露新规</div>
+        <div class="alert-b">商品信息模板新增「AI 生成内容」披露字段，<strong>存量 listing 须在 2026-11-01 前完成补全</strong>，漏报按违规处理。平台 AI 扫描对违禁词与绝对化用语的识别准确率已达约 89%，人工肉眼抽查已经追不上。本工具的 <code class="mono">ai_disclosure</code> 规则类专项检查此项。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: workspace -->
+<section class="workspace" id="checker">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>在线检测台</h2>
+      <p>粘贴 listing 文案，选择目标平台，立即输出分级审计报告。全部计算在你的浏览器内完成。</p>
+    </div>
+
+    <div class="ws-grid">
+      <!-- 输入区 -->
+      <div class="card">
+        <div class="card-hd">
+          <h3>商品文案输入</h3>
+          <div class="sp pill-row" id="sample-btns"></div>
+        </div>
+        <div class="card-bd">
+          <div class="field">
+            <div class="lbl">目标平台 <span class="hint" id="pack-meta">—</span></div>
+            <div class="select-row" id="platform-seg" role="radiogroup" aria-label="选择目标平台"></div>
+          </div>
+
+          <div class="field">
+            <label class="lbl" for="f-title">商品标题 <span class="req">*</span><span class="hint">title</span></label>
+            <input type="text" id="f-title" placeholder="例：Wireless Earbuds with Active Noise Cancelling" autocomplete="off">
+          </div>
+
+          <div class="field">
+            <div class="lbl">五点描述 <span class="hint">bullets · 可增删</span></div>
+            <div id="bullets-wrap"></div>
+            <button type="button" class="btn-mini" id="add-bullet" style="margin-top:8px">+ 增加一条</button>
+          </div>
+
+          <div class="field">
+            <label class="lbl" for="f-desc">商品详情描述 <span class="hint">description</span></label>
+            <textarea id="f-desc" rows="4" placeholder="产品详情段落……"></textarea>
+          </div>
+
+          <div class="field">
+            <div class="lbl">搜索关键词 <span class="hint">keywords · 回车或逗号添加</span></div>
+            <div class="pill-row" id="kw-pills"></div>
+            <div class="kw-input-row">
+              <input type="text" id="f-kw" placeholder="输入关键词后回车" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="lbl" for="f-disc">AI 内容披露状态 <span class="hint">aiDisclosure · 2026 新规</span></label>
+            <select id="f-disc">
+              <option value="">未声明（留空）</option>
+              <option value="human">完全人工撰写 human</option>
+              <option value="assisted">部分 AI 辅助 assisted</option>
+              <option value="ai_generated">完全 AI 生成 ai_generated</option>
+            </select>
+          </div>
+
+          <div class="actions">
+            <button type="button" class="btn btn-run" id="btn-run" data-primary-action>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 8.5l4 4 8-9"/></svg>
+              运行合规审计
+            </button>
+            <button type="button" class="btn btn-ghost btn-clear" id="btn-clear">清空</button>
+          </div>
+          <div class="local-note">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1L2 3.5v4c0 3.5 2.6 6.8 6 7.5 3.4-.7 6-4 6-7.5v-4L8 1zm0 5.5a1.75 1.75 0 0 1 1 3.19V11H7V9.69a1.75 1.75 0 0 1 1-3.19z"/></svg>
+            <span>你的文案不会离开这台设备：无后端、无请求、无埋点、不落 localStorage。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 报告区 -->
+      <div class="card">
+        <div class="card-hd">
+          <h3>审计报告</h3>
+          <div class="sp"><span class="mono" style="font-size:11.5px;color:var(--muted)" id="report-meta">等待输入</span></div>
+        </div>
+        <div id="report-root">
+          <div class="report-empty">
+            <svg width="44" height="44" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>
+            <p>还没有审计结果</p>
+            <div class="sub">填写左侧文案后点「运行合规审计」，或先载入一个示例试试。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: how -->
+<section class="how" id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>不是关键词包含，是三级归一化匹配</h2>
+      <p>卖家会为了躲扫描故意改写文案，平台也会。规则引擎按三个层次依次匹配，两侧共用同一套归一化，避免「规则写得对但匹配不上」。</p>
+    </div>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-n">LEVEL 1 · FOLD</div>
+        <h4>全角折叠与空白归一</h4>
+        <p>全角 ASCII 转半角、统一小写、移除中日韩字符之间的空白、连续空白折叠为单个空格。规则词与被匹配文本走同一条归一化路径。</p>
+        <div class="how-demo"><span class="in">ＦＲＥＥ　ＳＨＩＰＰＩＮＧ</span><span class="ar">→</span><span class="out">命中</span></div>
+      </div>
+      <div class="how-card">
+        <div class="how-n">LEVEL 2 · CONDENSE</div>
+        <h4>混淆分隔符压缩</h4>
+        <p>折叠后再剥掉全部非字母数字字符，专门对付用连字符、点号、空格拆开敏感词的写法。中文按 Unicode 字母类保留，所以「全 场 最 低 价」同样压得住。</p>
+        <div class="how-demo"><span class="in">f-r-e-e shipping</span><span class="ar">→</span><span class="out">命中</span></div>
+      </div>
+      <div class="how-card">
+        <div class="how-n">LEVEL 3 · REGEX</div>
+        <h4>带词边界的正则</h4>
+        <p>规则包里用 <code>re:</code> 前缀写正则，配合 <code>\b</code> 词边界精确命中独立单词。这决定了工具敢不敢用：<strong>误报会让卖家不再信任报告</strong>。</p>
+        <div class="how-demo"><span class="in">secure / sculpture</span><span class="ar">≠</span><span class="out">cure</span></div>
+      </div>
+    </div>
+
+    <div class="alert" style="margin-top:22px;border-left-color:var(--accent);background:var(--accent-bg);border-color:rgba(88,166,255,.25)">
+      <svg class="alert-ico" width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" style="color:var(--accent)"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.75 3h1.5v1.5h-1.5V4zm0 2.75h1.5V12h-1.5V6.75z"/></svg>
+      <div>
+        <div class="alert-t" style="color:var(--accent)">这个网页版和命令行版是同一套引擎</div>
+        <div class="alert-b">页面里的 JavaScript 引擎是从 Java 实现<strong>逐条移植</strong>的，并用差分测试校验：13 组用例、52 项断言，命中项、分级、字段、建议文本与退出码语义<strong>全部一致</strong>。规则包同样是同一份 YAML 的数据副本，不存在「网页版偷偷放宽了规则」。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: rules -->
+<section class="rules" id="rules">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>规则库（可检索）</h2>
+      <p>规则即版本化文件，改了什么、为什么改，git log 里都有。下面是三个平台规则包的完整内容。</p>
+    </div>
+    <div class="rules-toolbar">
+      <div class="seg-mini" id="rules-platform" role="group" aria-label="按平台筛选规则"></div>
+      <input type="text" id="rules-search" placeholder="搜索规则 ID / 词条 / 说明……" autocomplete="off" aria-label="搜索规则">
+      <div class="seg-mini" id="rules-sev" role="group" aria-label="按严重级筛选规则">
+        <button type="button" data-sev="ALL" aria-pressed="true">全部</button>
+        <button type="button" data-sev="RED" aria-pressed="false">仅红线</button>
+      </div>
+      <span class="mono" style="font-size:12px;color:var(--muted);margin-left:auto" id="rules-count">—</span>
+    </div>
+    <div class="tbl-wrap" style="max-height:560px;overflow-y:auto">
+      <table>
+        <thead>
+          <tr><th style="width:16%">规则 ID</th><th style="width:9%">级别</th><th style="width:13%">类别</th><th style="width:26%">匹配词条</th><th>说明与建议</th></tr>
+        </thead>
+        <tbody id="rules-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: channels / integrate -->
+<section class="chan" id="integrate">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>把合规闸门接到你现有的流程里</h2>
+      <p>在线检测台解决「试一下」；真正的价值是让它成为一条<strong>不会被人手动跳过</strong>的闸门。三种接入方式，按你的角色选。</p>
+    </div>
+    <div class="chan-grid">
+      <div class="chan-card">
+        <div class="chan-ico"><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></div>
+        <h4>CI 流水线闸门</h4>
+        <p>退出码就是闸门：<code>0</code> 合规通过、<code>1</code> 命中阈值、<code>2</code> 用法错误。解析失败也算 <code>1</code>——无法解析就无法证明合规（fail-closed）。</p>
+        <code>- name: Listing compliance gate
+  run: java -jar listguard.jar check listings/ \
+    --platform amazon --fail-on yellow</code>
+        <a class="chan-link" id="link-action" href="#" target="_blank" rel="noopener noreferrer">查看 GitHub Action 用法 →</a>
+      </div>
+      <div class="chan-card">
+        <div class="chan-ico"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h12M2 8h8M2 12h10"/></svg></div>
+        <h4>SARIF 上传到代码扫描</h4>
+        <p><code>--format sarif</code> 输出兼容 SARIF 2.1.0，可作为 GitHub Code Scanning 工件直传，命中项以 error / warning 出现在 PR 检查里，评审时就能看到。</p>
+        <code>java -jar listguard.jar check listings/ \
+  --platform amazon --format sarif \
+  > results.sarif</code>
+        <a class="chan-link" id="link-sarif" href="#" target="_blank" rel="noopener noreferrer">SARIF 输出格式说明 →</a>
+      </div>
+      <div class="chan-card">
+        <div class="chan-ico"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="2.6"/><path d="M8 1v2.2M8 12.8V15M1 8h2.2M12.8 8H15M3.1 3.1l1.6 1.6M11.3 11.3l1.6 1.6M12.9 3.1l-1.6 1.6M4.7 11.3l-1.6 1.6"/></svg></div>
+        <h4>代运营 / 自有词库</h4>
+        <p>规则包是纯 YAML。<code>--rules-dir</code> 把你的自定义词库追加到内置包之上，适合代运营公司沉淀自家黑话、类目专属红线，词库更新走 code review。</p>
+        <code>java -jar listguard.jar check listings/ \
+  --platform temu \
+  --rules-dir ./our-blacklist/</code>
+        <a class="chan-link" id="link-rules" href="#" target="_blank" rel="noopener noreferrer">自定义规则包格式 →</a>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      <strong>免责说明：</strong>本工具基于公开平台政策与处罚案例整理规则，用于<strong>辅助</strong>发现文案风险，不构成平台官方判定，也不保证覆盖全部违规情形。规则包按平台政策月度更新，请以目标平台最新官方政策为准。高风险类目（保健品、母婴、化妆品、医疗器械）建议叠加人工复核。
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- SECTION: footer -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-about">
+        <a class="brand" href="#top" style="margin-bottom:2px">
+          <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true">
+            <rect width="100" height="100" rx="20" fill="#10141c"/>
+            <path d="M28 24h44v13H28zM28 47h30v11H28z" fill="#768390"/>
+            <path d="M60 50l7 7 14-16 6 5-20 23-13-13z" fill="#3fb950"/>
+          </svg>
+          <span class="brand-name">ListGuard</span>
+        </a>
+        <p>跨境电商 Listing 合规审计引擎。确定性优先：每条命中都带规则 ID 与依据，可复现、可解释，LLM 永远不做判定。</p>
+      </div>
+      <div>
+        <h5>产品</h5>
+        <ul>
+          <li><a href="#checker">在线检测台</a></li>
+          <li><a href="#how">三级匹配原理</a></li>
+          <li><a href="#rules">规则库检索</a></li>
+          <li><a href="#integrate">CI / SARIF 接入</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>开发者</h5>
+        <ul>
+          <li><a id="foot-repo" href="#" target="_blank" rel="noopener noreferrer">GitHub 仓库</a></li>
+          <li><a id="foot-license" href="#" target="_blank" rel="noopener noreferrer">MIT License</a></li>
+          <li><a id="foot-issue" href="#" target="_blank" rel="noopener noreferrer">反馈误报 / 提规则</a></li>
+          <li><a id="foot-roadmap" href="#" target="_blank" rel="noopener noreferrer">路线图</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span id="foot-version">listguard v0.1.0</span>
+      <span>·</span>
+      <span>规则包 amazon-us / temu-global / tiktok-us · 更新于 <span id="foot-updated">2026-10-16</span></span>
+      <span class="sp">© 2026 ZhuYT · MIT</span>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets/rulepacks.js"></script>
+<script src="assets/engine.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

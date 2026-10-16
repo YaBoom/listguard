@@ -51,6 +51,48 @@ java -jar target/listguard.jar rules
 
 listing JSON 格式见 [examples](examples/)，`aiDisclosure` 取值 `human` / `assisted` / `ai_generated`。
 
+## 三种使用方式
+
+除了上面的 CLI，还有两个零门槛入口：
+
+### 在线检测台（无需安装）
+
+`web/listguard-listing-compliance-checker.html` 是一个单文件网页：粘贴 listing 文案、选平台、点检测，
+即时输出分级报告并在原文高亮命中片段。纯浏览器本地计算，**文案不上传任何服务器**。
+
+它内置的 JS 引擎是 Java 实现的移植，用 `web/tests/engine-parity.test.mjs` 逐条比对，
+命中项、分级、字段、建议文本与退出码语义与 CLI 完全一致（52 项断言）。规则数据同样是 YAML 的副本，
+由 `web/tests/rulepack-sync.test.mjs` 防止两份数据漂移。
+
+```bash
+# 本地预览：直接双击 web/listguard-listing-compliance-checker.html 即可，
+# 或起一个静态服务器（注意 npm start 是启动 MCP server，不是网页预览）
+npx serve web
+```
+
+### MCP server（供 AI agent 调用）
+
+`mcp/server.mjs` 把合规审计暴露为 4 个 MCP 工具，零 npm 依赖，走 stdio JSON-RPC：
+
+| 工具 | 用途 |
+|------|------|
+| `audit_listing` | 审计一条 listing，返回分级、命中明细与等效 CI 退出码 |
+| `list_rule_packs` | 列出支持的平台规则包与规则数 |
+| `search_rules` | 按关键词搜规则，回答「这条为什么被判违规」 |
+| `suggest_rewrite` | 把命中项转成按字段分组的改写建议 |
+
+```jsonc
+// Claude Desktop / Cline / Cursor 等
+{ "mcpServers": { "listguard": { "command": "node", "args": ["<repo>/mcp/server.mjs"] } } }
+```
+
+MCP server 复用 `web/assets/` 下同一份引擎，判定语义与 CLI、在线页三者一致
+（`mcp/server.test.mjs` 40 项断言校验协议与工具行为）。
+
+```bash
+npm test   # 依次跑：引擎差分 + 规则同步 + MCP 协议，共 95 项断言
+```
+
 ## CI 闸门
 
 退出码就是闸门，放进流水线即可：
@@ -111,10 +153,14 @@ LLM 只是增强层：不可用、超时、返回异常时静默降级，核心�
 
 ## 路线图
 
-- [ ] CLI 集成 LLM 改写建议（`--suggest`）
-- [ ] Python MCP server / SDK（供 agent 工作流调用）
+- [x] MCP server / SDK（供 agent 工作流调用）→ 已交付 `mcp/server.mjs`（Node 实现，零依赖；原计划的 Python 版未做，因为 Node 版能直接复用已验证的网页引擎，避免出现第三份判定实现）
+- [x] 免费在线检测台（零安装门槛的获客入口）→ 已交付 `web/`
+- [ ] CLI 集成 LLM 改写建议（`--suggest`）——`LlmRewriteAdvisor` 已实现，CLI 尚未接线
 - [ ] 付费垂直规则包订阅（类目级：保健品、母婴、化妆品）
 - [ ] 团队批量 API 与报告看板
+- [ ] 批量与增量扫描性能（当前单机单进程）
+
+商业化路径与渠道优先级见 [docs/commercialization-plan.md](docs/commercialization-plan.md)。
 
 ## License
 
