@@ -1,0 +1,98 @@
+# Temu 全球站 Listing 合规规则包
+# 词表依据 2026-10 平台处罚案例整理（扣款/下架/限制上新），月度更新
+name: temu-global
+platform: temu
+market: GLOBAL
+version: "0.1.0"
+updated: "2026-10-16"
+rules:
+  - id: promo-cheapest
+    category: promo_word
+    severity: RED
+    patterns: ["cheapest", "lowest price"]
+    message: 最低价声明无法验证且易引发价格欺诈认定
+    suggestion: 删除，价格竞争力由平台比价系统呈现
+  - id: promo-free-gift
+    category: promo_word
+    severity: RED
+    patterns: ["free gift", "buy one get one free"]
+    message: 赠品促销表述需走平台活动流程，文案直写易被扣款
+    suggestion: 删除，促销通过平台营销工具配置
+  - id: promo-cashback
+    category: promo_word
+    severity: RED
+    patterns: ["cashback", "rebate"]
+    message: 返现类表述触发平台营销合规审查
+    suggestion: 删除
+  - id: absolute-original
+    category: absolute_claim
+    severity: RED
+    patterns: ["100% original", "authentic guaranteed", "百分百正品", "假一赔十"]
+    message: 正品保证类绝对化用语，无授权链路证明即违规
+    suggestion: 删除；品牌商品在后台上传授权资质
+  - id: absolute-no1
+    category: absolute_claim
+    severity: RED
+    patterns: ["第一品牌", "全网最低", "销量第一", "top brand"]
+    message: 排名类绝对化宣传，广告法与平台规则双重红线
+    suggestion: 删除，改为可验证的产品卖点
+  - id: absolute-miracle
+    category: absolute_claim
+    severity: RED
+    patterns: ["miracle", "weight loss miracle", "包治百病", "绝对有效"]
+    message: 功效奇迹类声明，普通商品严禁医疗功效暗示
+    suggestion: 删除全部功效承诺
+  - id: absolute-forever
+    category: absolute_claim
+    severity: YELLOW
+    patterns: ["lifetime warranty", "永不磨损", "永久保修"]
+    message: 永久类承诺造成售后纠纷与平台判罚
+    suggestion: 改为具体年限（如 2-year warranty）
+  - id: cert-medical
+    category: certification_claim
+    severity: RED
+    patterns: ["medical grade", "医用级", "clinically proven"]
+    message: 医用/临床声明需资质文件，Temu 类目审核重点
+    suggestion: 无资质删除；有报告在资质中心上传
+  - id: cert-noside
+    category: certification_claim
+    severity: RED
+    patterns: ["no side effects", "无副作用"]
+    message: 无副作用声明属医疗类绝对化宣传
+    suggestion: 删除
+  - id: cert-foodsafe
+    category: certification_claim
+    severity: YELLOW
+    patterns: ["food grade", "食品级"]
+    message: 食品级声明需检测报告支撑，质检类目重点核查
+    suggestion: 上传检测报告或删除该表述
+  - id: banned-cn-promo
+    category: banned_word
+    severity: RED
+    patterns: ["秒杀", "免单", "清仓"]
+    message: 中文促销词直出详情页，触发音控/营销合规
+    suggestion: 删除，站点文案使用目标市场语言
+  - id: banned-pinduoduo
+    category: banned_word
+    severity: RED
+    patterns: ["拼多多", "淘宝", "京东"]
+    message: 竞品平台名称属引流违禁词
+    suggestion: 删除
+  - id: tm-disney
+    category: trademark_risk
+    severity: RED
+    patterns: ["disney", "marvel", "mickey"]
+    message: 知名 IP 角色词，无授权即侵权下架并扣保证金
+    suggestion: 删除，除非持有 IP 授权
+  - id: tm-levi
+    category: trademark_risk
+    severity: YELLOW
+    patterns: ["levis", "levi's"]
+    message: 品牌词误用易触发商标投诉
+    suggestion: 删除品牌词，只描述商品属性
+  - id: ai-disclosure-rule
+    category: ai_disclosure
+    severity: YELLOW
+    patterns: []
+    message: AI 披露规则由专用检查器执行（平台 AIGC 内容治理收紧中）
+    suggestion: 如实标注 AI 生成素材，保留生成记录备查

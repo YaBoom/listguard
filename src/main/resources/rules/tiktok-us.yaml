@@ -1,0 +1,98 @@
+# TikTok Shop 美国站 Listing 合规规则包
+# 词表依据 2026-10 平台政策与公开处罚案例整理，月度更新
+name: tiktok-us
+platform: tiktok
+market: US
+version: "0.1.0"
+updated: "2026-10-16"
+rules:
+  - id: promo-free-gift
+    category: promo_word
+    severity: RED
+    patterns: ["free gift", "freebie"]
+    message: 赠品诱导表述触发促销合规审查
+    suggestion: 删除，促销活动走平台官方活动页
+  - id: promo-linkinbio
+    category: promo_word
+    severity: YELLOW
+    patterns: ["link in bio", "dm for price", "dm to order"]
+    message: 站外引流/私下成交表述违反平台交易闭环要求
+    suggestion: 删除，引导用户在站内完成下单
+  - id: promo-follow-discount
+    category: promo_word
+    severity: YELLOW
+    patterns: ["follow for discount", "discount code in comment"]
+    message: 关注换优惠属诱导互动，限流风险
+    suggestion: 删除
+  - id: promo-flash
+    category: promo_word
+    severity: RED
+    patterns: ["50% off today only", "flash sale now"]
+    message: 限时促销直写文案与平台活动机制冲突
+    suggestion: 删除，用平台限时购工具
+  - id: absolute-burnfat
+    category: absolute_claim
+    severity: RED
+    patterns: ["burn fat", "lose weight fast", "slimming guaranteed"]
+    message: 减脂功效承诺，美妆/保健品严格红线
+    suggestion: 删除功效承诺，改为成分与使用体验描述
+  - id: absolute-antiaging
+    category: absolute_claim
+    severity: RED
+    patterns: ["anti-aging guaranteed", "erase wrinkles", "look 10 years younger"]
+    message: 抗衰绝对化功效声明
+    suggestion: 改为化妆品允许的修饰表述（如改善肌肤外观）
+  - id: absolute-detox
+    category: absolute_claim
+    severity: RED
+    patterns: ["detox", "cleanse toxins"]
+    message: 排毒类医疗暗示声明
+    suggestion: 删除
+  - id: absolute-whitening
+    category: absolute_claim
+    severity: YELLOW
+    patterns: ["whitening", "skin lightening"]
+    message: 美白属特殊化妆品功效宣称，需备案支撑
+    suggestion: 无备案改为提亮/均匀肤色等合规表述
+  - id: cert-fda
+    category: certification_claim
+    severity: RED
+    patterns: ["fda approved", "cures", "treats"]
+    message: 医疗功效/认证声明，非药品严禁
+    suggestion: 删除
+  - id: cert-organic
+    category: certification_claim
+    severity: YELLOW
+    patterns: ["100% organic", "all natural"]
+    message: 天然/有机声明需认证支撑
+    suggestion: 核对认证后保留或删除
+  - id: banned-beforeafter
+    category: banned_word
+    severity: RED
+    patterns: ["before after", "re:\\bb/a\\s+photos?\\b"]
+    message: 前后对比类内容在美区属敏感营销素材
+    suggestion: 移除对比表述，用场景图代替
+  - id: banned-competitor
+    category: banned_word
+    severity: RED
+    patterns: ["better than", "alternative to"]
+    message: 贬损/比对竞品表述违反公平竞争规则
+    suggestion: 删除竞品对比，突出自身卖点
+  - id: tm-apple
+    category: trademark_risk
+    severity: RED
+    patterns: ["for iphone", "airpods style"]
+    message: 兼容表述书写不当易被判商标滥用（airpods 为注册商标）
+    suggestion: 兼容商品使用 compatible with 并核对品牌词政策
+  - id: tm-nike
+    category: trademark_risk
+    severity: RED
+    patterns: ["nike style", "like nike"]
+    message: 借名品牌词侵权
+    suggestion: 删除
+  - id: ai-disclosure-rule
+    category: ai_disclosure
+    severity: YELLOW
+    patterns: []
+    message: AI 披露规则由专用检查器执行（平台要求标注 AIGC 内容）
+    suggestion: 如实标注 AI 生成内容，保留生成记录

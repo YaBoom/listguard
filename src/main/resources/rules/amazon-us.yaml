@@ -1,0 +1,128 @@
+# Amazon 美国站 Listing 合规规则包
+# 词表依据 2026-10 平台政策与公开处罚案例整理，月度更新
+name: amazon-us
+platform: amazon
+market: US
+version: "0.1.0"
+updated: "2026-10-16"
+rules:
+  - id: promo-free-shipping
+    category: promo_word
+    severity: RED
+    patterns: ["free shipping"]
+    message: 促销短语 free shipping 属于平台禁用促销表述，易被判诱导点击
+    suggestion: 删除该短语，运费信息只放在价格/配送属性字段
+  - id: promo-best-seller
+    category: promo_word
+    severity: RED
+    patterns: ["best seller", "bestseller"]
+    message: 促销表述 best seller 属排名类宣传，无依据即违规
+    suggestion: 删除，改为描述产品功能本身
+  - id: promo-money-back
+    category: promo_word
+    severity: RED
+    patterns: ["money-back guarantee", "money back guarantee"]
+    message: 退款保证类表述超出平台允许的承诺范围
+    suggestion: 删除，售后政策在店铺与平台规则内如实展示
+  - id: promo-quality-guaranteed
+    category: promo_word
+    severity: RED
+    patterns: ["100% quality guaranteed", "quality guaranteed", "satisfaction guaranteed"]
+    message: 绝对化质量承诺属高危促销用语
+    suggestion: 删除该承诺，改为具体质保参数（如 12-month warranty）
+  - id: promo-free-gift
+    category: promo_word
+    severity: RED
+    patterns: ["free gift", "free giveaway"]
+    message: 赠品促销表述可能触发促销审查
+    suggestion: 删除，促销活动通过平台广告/促销工具进行
+  - id: promo-sale
+    category: promo_word
+    severity: RED
+    patterns: ["on sale", "discount price", "lowest price"]
+    message: 降价促销词在标题与五点中禁用
+    suggestion: 删除，价格促销只使用平台优惠机制
+  - id: absolute-no1
+    category: absolute_claim
+    severity: RED
+    patterns: ["'#1 best'", "number one", "no.1", "top rated"]
+    message: 绝对化排名/评级用语，无第三方依据即违规
+    suggestion: 删除排名表述，改用可验证的产品参数
+  - id: absolute-guaranteed-results
+    category: absolute_claim
+    severity: RED
+    patterns: ["re:\\bguaranteed\\s+results\\b", "re:\\bworks\\s+instantly\\b"]
+    message: 保证功效/立竿见影类绝对化声明
+    suggestion: 删除功效承诺，改为客观描述产品属性
+  - id: absolute-cure
+    category: absolute_claim
+    severity: RED
+    patterns: ["cure", "treat disease", "heals"]
+    message: 疾病治疗类声明，非药品类目严格禁止
+    suggestion: 删除所有疾病治疗相关表述
+  - id: cert-fda
+    category: certification_claim
+    severity: RED
+    patterns: ["fda approved", "fda certified"]
+    message: FDA 认证声明须有真实注册号，无证声明属虚假宣传
+    suggestion: 无 FDA 注册立即删除；有证在描述中附注册信息
+  - id: cert-eco
+    category: certification_claim
+    severity: YELLOW
+    patterns: ["eco-friendly", "biodegradable", "sustainable material"]
+    message: 环保声明需第三方认证支撑，平台重点审查绿色宣传
+    suggestion: 无认证删除，或注明具体认证机构与证书编号
+  - id: cert-antibacterial
+    category: certification_claim
+    severity: RED
+    patterns: ["anti-bacterial", "antibacterial", "kills 99.9%"]
+    message: 抗菌/灭菌声明需 EPA 或实验室报告支撑
+    suggestion: 无报告删除该声明
+  - id: cert-ce
+    category: certification_claim
+    severity: YELLOW
+    patterns: ["ce marked", "ce certified", "fcc certified"]
+    message: 认证标记声明须与实际证书一致，目标市场必查项
+    suggestion: 核对证书后保留或删除；欧洲站需 GPSR 责任人信息配套
+  - id: cert-organic
+    category: certification_claim
+    severity: YELLOW
+    patterns: ["organic"]
+    message: 有机声明需 USDA 等认证，食品/美妆类目高敏感
+    suggestion: 无认证删除 organic 表述
+  - id: banned-covid
+    category: banned_word
+    severity: RED
+    patterns: ["covid-19", "coronavirus"]
+    message: 时效性禁用词，曾被大量用于蹭流量后被平台封禁
+    suggestion: 删除
+  - id: tm-emoji
+    category: trademark_risk
+    severity: RED
+    patterns: ["emoji"]
+    message: emoji 已被抢注为注册商标，常见侵权词
+    suggestion: 删除该词，避免商标侵权下架
+  - id: tm-frisbee
+    category: trademark_risk
+    severity: RED
+    patterns: ["frisbee"]
+    message: Frisbee 是 Wham-O 注册商标，通用名称应为 flying disc
+    suggestion: 改为 flying disc
+  - id: tm-hulahoop
+    category: trademark_risk
+    severity: YELLOW
+    patterns: ["hula hoop"]
+    message: Hula Hoop 存在商标争议记录，建议用通用名
+    suggestion: 改为 fitness hoop 等通用表述
+  - id: tm-velcro
+    category: trademark_risk
+    severity: YELLOW
+    patterns: ["velcro"]
+    message: Velcro 为注册商标，通用名应为 hook and loop
+    suggestion: 改为 hook and loop fastener
+  - id: ai-disclosure-rule
+    category: ai_disclosure
+    severity: YELLOW
+    patterns: []
+    message: AI 披露规则由专用检查器执行（2026-08 新规：商品信息模板 AI 生成内容字段）
+    suggestion: 在卖家后台如实填写 AI 生成内容披露字段，存量商品 2026-11-01 前完成补全
