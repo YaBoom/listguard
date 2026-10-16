@@ -1,6 +1,10 @@
-name: 'listguard-compliance-gate'
+name: 'ListGuard Compliance Gate'
 description: 'Run listguard listing compliance audit as a CI gate'
-author: 'ZhuYT'
+author: 'YaBoom'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
 
 inputs:
   path:
