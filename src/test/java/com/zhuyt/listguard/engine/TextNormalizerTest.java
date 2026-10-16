@@ -13,7 +13,8 @@ class TextNormalizerTest {
 
     @Test
     void fold_keepsCjk() {
-        assertEquals("包邮 促销", TextNormalizer.fold("包  邮 促 销"));
+        assertEquals("包邮促销", TextNormalizer.fold("包  邮 促 销"));
+        assertEquals("包邮 sale 促销", TextNormalizer.fold("包 邮  SALE 促 销"));
     }
 
     @Test
