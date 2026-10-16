@@ -1,0 +1,40 @@
+name: 'listguard-compliance-gate'
+description: 'Run listguard listing compliance audit as a CI gate'
+author: 'ZhuYT'
+
+inputs:
+  path:
+    description: 'Listing JSON file or directory to audit'
+    required: true
+    default: 'listings/'
+  platform:
+    description: 'amazon / temu / tiktok'
+    required: true
+  fail-on:
+    description: 'red / yellow / never'
+    required: false
+    default: 'red'
+  format:
+    description: 'text / json / sarif'
+    required: false
+    default: 'sarif'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+    - name: Build listguard
+      shell: bash
+      run: mvn -B -q -DskipTests package
+    - name: Run compliance gate
+      shell: bash
+      run: >-
+        java -jar target/listguard.jar check
+        ${{ inputs.path }}
+        --platform ${{ inputs.platform }}
+        --format ${{ inputs.format }}
+        --fail-on ${{ inputs.fail-on }}
