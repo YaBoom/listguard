@@ -65,11 +65,13 @@ class RuleEngineTest {
     }
 
     @Test
-    void dedup_variantPatterns_sameRuleTwoFindings() {
-        // best seller 与 bestseller 是同规则的两个不同命中片段，各自保留（FixSuggester 依赖 matchedText）
+    void dedup_variantPatterns_sameLocation_singleFinding() {
+        // 同一处文本被变体 patterns（best seller / bestseller）双层命中时只报一次：
+        // 报告与 SARIF 不应出现重复告警；matchedText 保留先命中的 fold 形态
         var l = new Listing("1", "best seller bestseller", List.of(), "", List.of(), "amazon", "human");
         var fs = engine.scan(l).stream().filter(f -> f.ruleId().equals("promo-best-seller")).toList();
-        assertEquals(2, fs.size());
+        assertEquals(1, fs.size());
+        assertEquals("best seller", fs.get(0).matchedText());
     }
 
     @Test

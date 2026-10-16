@@ -1,5 +1,6 @@
 package com.zhuyt.listguard.rules;
 
+import com.zhuyt.listguard.engine.TextNormalizer;
 import com.zhuyt.listguard.model.Rule;
 import com.zhuyt.listguard.model.RulePack;
 import com.zhuyt.listguard.model.Severity;
@@ -124,6 +125,12 @@ public final class RulePackLoader {
         }
         if (patterns.isEmpty() && !"ai_disclosure".equals(category)) {
             throw new IllegalStateException("规则 patterns 不能为空: " + id + "@" + location);
+        }
+        for (String p : patterns) {
+            if (!p.startsWith("re:") && TextNormalizer.condense(p).isEmpty()) {
+                // 压缩后为空的纯符号 pattern 会使 contains("") 恒真，全字段误报
+                throw new IllegalStateException("规则 pattern 不能是纯符号（压缩后为空）: " + id + "@" + location);
+            }
         }
         return new Rule(id, category, severity, List.copyOf(patterns),
                 str(m, "message", location, true), str(m, "suggestion", location, true));

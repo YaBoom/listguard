@@ -49,6 +49,16 @@ public class CheckCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
+        try {
+            return doCall();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            // 配置/规则包错误属用法错误：与「命中红线」（exit 1）区分，返回 2
+            System.err.println("用法/配置错误: " + e.getMessage());
+            return 2;
+        }
+    }
+
+    private Integer doCall() {
         String packName = BUILTIN_PACKS.get(platform.toLowerCase(Locale.ROOT));
         if (packName == null) {
             System.err.println("未知平台 [" + platform + "]：可选 amazon / temu / tiktok");

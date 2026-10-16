@@ -64,6 +64,17 @@ class RulePackLoaderTest {
     }
 
     @Test
+    void symbolOnlyPattern_failsFast(@TempDir Path dir) throws Exception {
+        // condense 后为空的纯符号 pattern 会使 contains("") 恒真，全字段误报，必须拒绝
+        Files.writeString(dir.resolve("symbols.yaml"),
+                "name: sym\nplatform: x\nmarket: us\nversion: \"0.1\"\nupdated: \"2026-10-16\"\n"
+                        + "rules:\n  - id: r-sym\n    category: promo_word\n    severity: RED\n"
+                        + "    patterns: [\"!!!\"]\n    message: m\n    suggestion: s\n");
+        var e = assertThrows(IllegalStateException.class, () -> RulePackLoader.load(dir.resolve("symbols.yaml")));
+        assertTrue(e.getMessage().contains("r-sym"));
+    }
+
+    @Test
     void greenSeverity_rejected(@TempDir Path dir) throws Exception {
         Files.writeString(dir.resolve("green.yaml"),
                 "name: g\nplatform: x\nmarket: us\nversion: \"0.1\"\nupdated: \"2026-10-16\"\n"

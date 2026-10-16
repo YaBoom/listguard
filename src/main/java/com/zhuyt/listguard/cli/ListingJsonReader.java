@@ -19,6 +19,10 @@ public final class ListingJsonReader {
 
     public static Listing read(Path file, String defaultPlatform) throws IOException {
         JsonNode n = MAPPER.readTree(file.toFile());
+        if (!n.isObject()) {
+            // fail-closed：非对象根（如数组）无法作为 listing 审计，交由上层按解析失败处理
+            throw new IOException("listing 根节点必须是 JSON 对象，实际为 " + n.getNodeType());
+        }
         String fileName = file.getFileName() == null ? "listing" : file.getFileName().toString();
         String defaultId = fileName.endsWith(".json") ? fileName.substring(0, fileName.length() - 5) : fileName;
         return new Listing(

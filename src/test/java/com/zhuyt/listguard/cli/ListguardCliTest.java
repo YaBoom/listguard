@@ -103,6 +103,67 @@ class ListguardCliTest {
     }
 
     @Test
+    void check_nonObjectJsonRoot_failsClosedAndExit1(@TempDir Path tmp) throws Exception {
+        Path bad = tmp.resolve("array.json");
+        java.nio.file.Files.writeString(bad, "[1, 2, 3]");
+        int code = execute("check", bad.toString(), "--platform", "amazon");
+        assertEquals(1, code); // fail-closed：未审计 ≠ 合规
+        assertTrue(stderr().contains("array.json"));
+    }
+
+    @Test
+    void check_unknownFormat_usageErrorExit2() {
+        int code = execute("check", "examples/clean-sample.json",
+                "--platform", "amazon", "--format", "xml");
+        assertEquals(2, code);
+        assertTrue(stderr().contains("xml"));
+    }
+
+    @Test
+    void check_unknownFailOn_usageErrorExit2() {
+        int code = execute("check", "examples/clean-sample.json",
+                "--platform", "amazon", "--fail-on", "bogus");
+        assertEquals(2, code);
+    }
+
+    @Test
+    void check_invalidRulesDir_usageErrorExit2(@TempDir Path tmp) {
+        int code = execute("check", "examples/clean-sample.json",
+                "--platform", "amazon", "--rules-dir", tmp.resolve("no-such-dir").toString());
+        assertEquals(2, code);
+    }
+
+    @Test
+    void check_rulesDir_mergesCustomRules(@TempDir Path tmp) throws Exception {
+        Path rule = tmp.resolve("extra.yaml");
+        java.nio.file.Files.writeString(rule, """
+                name: custom-extra
+                platform: amazon
+                market: US
+                version: "1.0"
+                updated: "2026-10-16"
+                rules:
+                  - id: custom-magic-word
+                    category: promo_word
+                    severity: YELLOW
+                    patterns: ["magicword"]
+                    message: 自定义黑话
+                    suggestion: 删除
+                """);
+        int code = execute("check", "examples/clean-sample.json",
+                "--platform", "amazon", "--rules-dir", tmp.toString(), "--format", "text");
+        assertEquals(0, code); // clean 样本不含自定义词，但应能正常加载合并
+        Path listing = tmp.resolve("with-magic.json");
+        java.nio.file.Files.writeString(listing,
+                "{\"id\":\"M1\",\"title\":\"great magicword deal\",\"aiDisclosure\":\"human\"}");
+        int code2 = execute("check", listing.toString(),
+                "--platform", "amazon", "--rules-dir", tmp.toString(),
+                "--format", "text", "--fail-on", "yellow");
+        assertEquals(1, code2);
+        assertTrue(stdout().contains("custom-magic-word"));
+    }
+
+    @Test
     void rules_listsBuiltinPacks() {
         int code = execute("rules");
         assertEquals(0, code);

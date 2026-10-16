@@ -61,7 +61,9 @@ public class RuleEngine {
         String condensed = TextNormalizer.condense(text);
         for (CompiledRule cr : rules) {
             for (String hit : cr.matchAll(folded, condensed)) {
-                String key = cr.rule().id() + "|" + field + "|" + hit;
+                // 同一处违规被变体 patterns（如 best seller / bestseller）双层命中时只报一次：
+                // 去重按压缩形态归并，报告与 SARIF 不产生重复告警；保留先命中的 fold 形态
+                String key = cr.rule().id() + "|" + field + "|" + TextNormalizer.condense(hit);
                 uniq.putIfAbsent(key, new Finding(
                         cr.rule().id(), cr.rule().category(), cr.rule().severity(),
                         field, hit, cr.rule().message(), cr.rule().suggestion()));

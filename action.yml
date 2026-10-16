@@ -32,9 +32,9 @@ runs:
       run: mvn -B -q -DskipTests package
     - name: Run compliance gate
       shell: bash
-      run: >-
-        java -jar target/listguard.jar check
-        ${{ inputs.path }}
-        --platform ${{ inputs.platform }}
-        --format ${{ inputs.format }}
-        --fail-on ${{ inputs.fail-on }}
+      env:
+        LG_PATH: ${{ inputs.path }}
+        LG_PLATFORM: ${{ inputs.platform }}
+        LG_FORMAT: ${{ inputs.format }}
+        LG_FAIL_ON: ${{ inputs.fail-on }}
+      run: java -jar target/listguard.jar check "$LG_PATH" --platform "$LG_PLATFORM" --format "$LG_FORMAT" --fail-on "$LG_FAIL_ON"

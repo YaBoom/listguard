@@ -45,7 +45,7 @@ rules:
   - id: absolute-no1
     category: absolute_claim
     severity: RED
-    patterns: ["'#1 best'", "number one", "no.1", "top rated"]
+    patterns: ["#1 best", "number one", "no.1", "top rated"]
     message: 绝对化排名/评级用语，无第三方依据即违规
     suggestion: 删除排名表述，改用可验证的产品参数
   - id: absolute-guaranteed-results

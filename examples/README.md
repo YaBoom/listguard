@@ -8,10 +8,12 @@
 | `yellow-sample.json` | 默认退出码 0 | 文案干净但缺 `aiDisclosure`，`--fail-on yellow` 时为 1 |
 | `clean-sample.json` | 退出码 0 | 干净文案，`aiDisclosure: human` |
 
+在项目根目录执行（jar 路径相对项目根）：
+
 ```bash
-java -jar target/listguard.jar check red-sample.json --platform amazon
-java -jar target/listguard.jar check yellow-sample.json --platform amazon --fail-on yellow
-java -jar target/listguard.jar check clean-sample.json --platform amazon
+java -jar target/listguard.jar check examples/red-sample.json --platform amazon
+java -jar target/listguard.jar check examples/yellow-sample.json --platform amazon --fail-on yellow
+java -jar target/listguard.jar check examples/clean-sample.json --platform amazon
 ```
 
 字段说明：
