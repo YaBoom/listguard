@@ -1,5 +1,7 @@
 package com.zhuyt.listguard.advisor;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zhuyt.listguard.model.Finding;
 
 import java.util.Optional;
@@ -10,6 +12,8 @@ import java.util.Set;
  * 不可用时静默降级为 empty —— 核心审计功能不依赖 LLM。
  */
 public class LlmRewriteAdvisor {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final LlmClient client;
 
@@ -39,48 +43,28 @@ public class LlmRewriteAdvisor {
                 finding.category(), originalText);
         try {
             String content = client.complete(prompt);
-            return Optional.of(parseSuggestion(content, finding));
-        } catch (LlmClient.LlmUnavailableException e) {
-            return Optional.empty(); // 降级：LLM 只是增强，不是依赖
+            return Optional.of(parseSuggestion(content, originalText, finding));
+        } catch (RuntimeException e) {
+            // 降级：LLM 只是增强，不是依赖。RuntimeException 覆盖网络/解析/意外缺陷，不让增强层炸穿主流程
+            return Optional.empty();
         }
     }
 
-    private FixSuggestion parseSuggestion(String content, Finding finding) {
-        String suggestedText = extractJsonField(content, "suggestedText");
+    private FixSuggestion parseSuggestion(String content, String originalText, Finding finding) {
+        JsonNode node;
+        try {
+            node = MAPPER.readTree(content);
+        } catch (Exception e) {
+            throw new LlmClient.LlmUnavailableException("LLM 建议不是合法 JSON", e);
+        }
+        String suggestedText = node.path("suggestedText").asText(null);
         if (suggestedText == null || suggestedText.isBlank()) {
             throw new LlmClient.LlmUnavailableException("LLM 建议缺少 suggestedText");
         }
-        String rationale = extractJsonField(content, "rationale");
-        return new FixSuggestion(true, suggestedText,
-                (rationale == null ? "LLM 改写" : rationale) + "。" + finding.suggestion());
-    }
-
-    private static String extractJsonField(String json, String field) {
-        String key = "\"" + field + "\":\"";
-        int start = json.indexOf(key);
-        if (start < 0) {
-            return null;
+        if (suggestedText.strip().equals(originalText.strip())) {
+            throw new LlmClient.LlmUnavailableException("LLM 建议与原文相同，视为无效改写");
         }
-        start += key.length();
-        StringBuilder sb = new StringBuilder();
-        for (int i = start; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (c == '\\' && i + 1 < json.length()) {
-                char next = json.charAt(++i);
-                sb.append(switch (next) {
-                    case 'n' -> '\n';
-                    case 't' -> '\t';
-                    case '"' -> '"';
-                    case '\\' -> '\\';
-                    default -> next;
-                });
-                continue;
-            }
-            if (c == '"') {
-                return sb.toString();
-            }
-            sb.append(c);
-        }
-        return sb.toString();
+        String rationale = node.path("rationale").asText("LLM 改写");
+        return new FixSuggestion(true, suggestedText, rationale + "。" + finding.suggestion());
     }
 }

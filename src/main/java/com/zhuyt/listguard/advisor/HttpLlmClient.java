@@ -1,15 +1,21 @@
 package com.zhuyt.listguard.advisor;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-/** OpenAI 兼容 /chat/completions 的轻量 HTTP 客户端（java.net.http，零额外依赖）。 */
+/** OpenAI 兼容 /chat/completions 的轻量 HTTP 客户端（java.net.http + Jackson 解析）。 */
 public class HttpLlmClient implements LlmClient {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(15);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final String baseUrl;
     private final String apiKey;
@@ -38,16 +44,23 @@ public class HttpLlmClient implements LlmClient {
 
     @Override
     public String complete(String prompt) {
-        String body = "{\"model\":\"" + model + "\",\"messages\":[{\"role\":\"user\",\"content\":"
-                + jsonEscape(prompt) + "}],\"temperature\":0.2}";
-        HttpRequest request;
         try {
-            request = HttpRequest.newBuilder()
+            ObjectNode message = MAPPER.createObjectNode();
+            message.put("role", "user");
+            message.put("content", prompt);
+            ArrayNode messages = MAPPER.createArrayNode();
+            messages.add(message);
+            ObjectNode body = MAPPER.createObjectNode();
+            body.put("model", model);
+            body.set("messages", messages);
+            body.put("temperature", 0.2);
+
+            HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + "/chat/completions"))
                     .timeout(TIMEOUT)
                     .header("Authorization", "Bearer " + apiKey)
                     .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .POST(HttpRequest.BodyPublishers.ofString(MAPPER.writeValueAsString(body)))
                     .build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
@@ -56,52 +69,26 @@ public class HttpLlmClient implements LlmClient {
             return extractContent(response.body());
         } catch (LlmUnavailableException e) {
             throw e;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // 恢复中断位再降级
+            throw new LlmUnavailableException("LLM 调用被中断", e);
         } catch (Exception e) {
             throw new LlmUnavailableException("LLM 调用失败: " + e.getMessage(), e);
         }
     }
 
-    /** 极简 content 提取：取 "content":" 到下一个未转义引号之间。 */
+    /** Jackson 解析 choices[0].message.content，容忍 pretty-print 与任意 JSON 转义。 */
     private static String extractContent(String json) {
-        String key = "\"content\":\"";
-        int start = json.indexOf(key);
-        if (start < 0) {
-            throw new LlmUnavailableException("LLM 响应缺少 content 字段");
-        }
-        start += key.length();
-        StringBuilder sb = new StringBuilder();
-        for (int i = start; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (c == '\\' && i + 1 < json.length()) {
-                sb.append(json.charAt(++i) == 'n' ? '\n' : json.charAt(i));
-                continue;
+        try {
+            JsonNode content = MAPPER.readTree(json).path("choices").path(0).path("message").path("content");
+            if (content.isMissingNode() || !content.isTextual() || content.asText().isBlank()) {
+                throw new LlmUnavailableException("LLM 响应缺少 content 字段");
             }
-            if (c == '"') {
-                return sb.toString();
-            }
-            sb.append(c);
+            return content.asText();
+        } catch (LlmUnavailableException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new LlmUnavailableException("LLM 响应解析失败: " + e.getMessage(), e);
         }
-        throw new LlmUnavailableException("LLM 响应 content 未闭合");
-    }
-
-    private static String jsonEscape(String s) {
-        StringBuilder sb = new StringBuilder("\"");
-        for (char c : s.toCharArray()) {
-            switch (c) {
-                case '"' -> sb.append("\\\"");
-                case '\\' -> sb.append("\\\\");
-                case '\n' -> sb.append("\\n");
-                case '\r' -> sb.append("\\r");
-                case '\t' -> sb.append("\\t");
-                default -> {
-                    if (c < 0x20) {
-                        sb.append(String.format("\\u%04x", (int) c));
-                    } else {
-                        sb.append(c);
-                    }
-                }
-            }
-        }
-        return sb.append('"').toString();
     }
 }
